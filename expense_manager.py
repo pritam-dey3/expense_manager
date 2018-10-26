@@ -86,9 +86,9 @@ def view_member(n):
                     {"spent_by": n}
             )
     loans = expense_collection.find(
-    {"spent_for.name": "banik"},
+    {"spent_for.name": n},
     {"cause": 1, "spent_by": 1, "date": 1, "spent_for":
-        {"$elemMatch": {"name": "banik"}}
+        {"$elemMatch": {"name": n}}
         }
     )
     e = []
