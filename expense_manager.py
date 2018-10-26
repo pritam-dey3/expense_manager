@@ -104,7 +104,11 @@ def view_member(n):
         cause = doc["cause"]
         total = doc["total_spent"]
         self_exp = doc["self"]
-        spent_for = [obj["name"] for obj in doc["spent_for"]]
+        spent_for = [
+            {"name": obj["name"],
+             "value": obj["value"],
+              "due": rel(n, obj["name"], getDue = True, query_cause = cause)
+             } for obj in doc["spent_for"]]
         time = doc["date"]
         e.append([cause, total, spent_for, time])
         index_exp["cause"].append(cause)
@@ -113,19 +117,20 @@ def view_member(n):
         cause = doc["cause"]
         spent_by = doc["spent_by"]
         value = doc["spent_for"][0]["value"]
+        due = rel(n, spent_by, getDue = True, query_cause = cause)
         time = doc["date"]
-        l.append([cause, spent_by, value, time])
+        l.append([cause, spent_by, value, due, time])
         index_exp["cause"].append(cause)
         index_exp["amount"].append(value)
     # output
-    print(n)
-    for item in e + l:
-        print(item)
+    #print(n)
+    pprint(e)
+    print("\n")
+    pprint(l)
     print("\n")
     print(index_exp["cause"])
     print(index_exp["amount"])
     print("\nTotal: {}\n".format(sum(index_exp["amount"])))
-    print("\n\n")
 
 
 def update():
@@ -148,6 +153,7 @@ def transaction():
         print("\nGiven name doesn't exist! Try again...")
     while True:
         to = input("To ||: ")
+
         loans = expense_collection.find(
             {"spent_by": to, "spent_for.name": From},
             {"cause": 1, "spent_for":
@@ -155,17 +161,28 @@ def transaction():
              }
         )
         loans = list(loans)
-        # print(loans)
-        if not len(loans) == 0:
+        returns = expense_collection.find(
+            {"spent_by": From, "spent_for.name": to },
+            {"cause": 1, "spent_for":
+                {"$elemMatch": {"name": to}}
+             }
+        )
+        returns = list(returns)
+
+        ln_rn = loans + returns
+        if not len(ln_rn) == 0:
             break
         print("\nGiven name doesn't exist! Try again...\n")
     while True:
         cause = input("Cause ||: ")
-        causes = [x["cause"] for x in loans]
+        causes = [x["cause"] for x in ln_rn]
         if cause in causes:
             break
         print("\nGiven Cause doesn't exist! Try again...\n")
-    amount = input("Amount ||: ")  # modification needed
+    
+    due = rel(From, to, getDue = True, query_cause = cause)
+    print("\nDue amount = {}\n".format(due))
+    amount = input("Amount ||: ")
     input_doc = {
         "_id": transaction_collection.count(),
         "from": From,
@@ -197,7 +214,7 @@ def relation():
     return True
 
 
-def rel(n1, n2):
+def rel(n1, n2, getDue = False, query_cause = None):
     names = {"$in": [n1, n2]}
     rel_data = expense_collection.find(
         {"$and":
@@ -213,20 +230,24 @@ def rel(n1, n2):
         # print("\nnew\n")
         a = d.pop("spent_for")[0]["value"]
         d["amount"] = int(a)
-        sb = d.pop("spent_by")
+        sb = d["spent_by"]
         #print("\n{} {}\n",n1, sb)
         tran = transaction_collection.find(
-            {"cause": d["cause"], "from": names},
+            {"cause": d["cause"], "from": names, "to": names},
             {"_id": 0, "from": 1, "amount": 1, "date": 1}
         )
         trans = list(tran)
         for t in trans:
             f = t.pop("from")
+            if f == sb:
+                t["amount"] *= (-1)
         d["transactions"] = trans
         if n1 == sb:
             d["due"] = d["amount"] - sum([t["amount"] for t in trans])
         else:
             d["due"] = sum([t["amount"] for t in trans]) - d["amount"]
+        if getDue == True and query_cause == d["cause"]:
+            return d["due"]
     pprint(rel_data)
     final = sum([d["due"] for d in rel_data])
     print("final balance", final)
