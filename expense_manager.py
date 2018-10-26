@@ -107,7 +107,7 @@ def view_member(n):
         spent_for = [
             {"name": obj["name"],
              "value": obj["value"],
-              "due": rel(n, obj["name"], getDue = True, query_cause = cause)
+             "due": rel(n, obj["name"], getDue=True, query_cause=cause)
              } for obj in doc["spent_for"]]
         time = doc["date"]
         e.append([cause, total, spent_for, time])
@@ -117,13 +117,13 @@ def view_member(n):
         cause = doc["cause"]
         spent_by = doc["spent_by"]
         value = doc["spent_for"][0]["value"]
-        due = rel(n, spent_by, getDue = True, query_cause = cause)
+        due = rel(n, spent_by, getDue=True, query_cause=cause)
         time = doc["date"]
         l.append([cause, spent_by, value, due, time])
         index_exp["cause"].append(cause)
         index_exp["amount"].append(value)
     # output
-    #print(n)
+    # print(n)
     pprint(e)
     print("\n")
     pprint(l)
@@ -162,7 +162,7 @@ def transaction():
         )
         loans = list(loans)
         returns = expense_collection.find(
-            {"spent_by": From, "spent_for.name": to },
+            {"spent_by": From, "spent_for.name": to},
             {"cause": 1, "spent_for":
                 {"$elemMatch": {"name": to}}
              }
@@ -179,8 +179,8 @@ def transaction():
         if cause in causes:
             break
         print("\nGiven Cause doesn't exist! Try again...\n")
-    
-    due = rel(From, to, getDue = True, query_cause = cause)
+
+    due = rel(From, to, getDue=True, query_cause=cause)
     print("\nDue amount = {}\n".format(due))
     amount = input("Amount ||: ")
     input_doc = {
@@ -214,7 +214,7 @@ def relation():
     return True
 
 
-def rel(n1, n2, getDue = False, query_cause = None):
+def rel(n1, n2, getDue=False, query_cause=None):
     names = {"$in": [n1, n2]}
     rel_data = expense_collection.find(
         {"$and":
